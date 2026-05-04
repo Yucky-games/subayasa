@@ -1,70 +1,609 @@
-/* --- 前半部分は同じなので省略せずにそのまま上書きしてください --- */
+* {
+  box-sizing: border-box;
+}
+
 body {
-  font-family: sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   background-color: #f4f7f6;
   color: #333;
   margin: 0;
   padding: 20px;
+  line-height: 1.5;
 }
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+button,
+select {
+  cursor: pointer;
+}
+
 .container {
   max-width: 800px;
   margin: 0 auto;
   background: #fff;
   padding: 20px;
   border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
-.tabs { display: flex; margin-bottom: 20px; border-bottom: 2px solid #ddd; }
-.tab-btn { padding: 10px 20px; border: none; background: none; cursor: pointer; font-size: 16px; font-weight: bold; color: #888; }
-.tab-btn.active { color: #007bff; border-bottom: 3px solid #007bff; }
-.tab-content { display: none; }
-.tab-content.active { display: block; }
-input[type="text"], input[type="number"], select { padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; width: 100%; box-sizing: border-box; }
-input[type="number"] { width: 80px; }
 
-/* 検索結果のドロップダウン */
-.search-results { max-height: 150px; overflow-y: auto; border: 1px solid #ddd; border-top: none; display: none; background: #fff; position: absolute; width: calc(100% - 30px); z-index: 10; }
-.search-results div { padding: 8px; cursor: pointer; border-bottom: 1px solid #eee; }
-.search-results div:hover { background-color: #f0f0f0; }
-
-.battle-setup { display: flex; gap: 20px; margin-bottom: 20px; }
-.setup-box { flex: 1; padding: 15px; border-radius: 8px; position: relative; }
-.mine-setup { background-color: #e6f2ff; }
-.opponent-setup { background-color: #ffe6e6; }
-
-/* --- ここから新しく追加・変更したスタイル --- */
-/* 左右のボックスの高さを揃えるためのエリア設定 */
-.search-area {
-  min-height: 110px; /* プルダウンや「または」がある左側と高さを合わせる */
+.header-area {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
 }
-.or-text {
-  text-align: center;
+
+h1 {
+  margin: 0;
+  line-height: 1.2;
+}
+
+h2 {
+  margin: 0 0 16px;
+  line-height: 1.35;
+}
+
+.auth-area {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
   font-size: 0.9em;
-  color: #666;
-  margin: 5px 0;
 }
 
-/* ポケモンが選ばれたあとの白い枠 */
+.auth-area button {
+  min-height: 36px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  font-weight: bold;
+}
+
+.login-msg {
+  color: #dc3545;
+  font-weight: bold;
+}
+
+#login-x-btn {
+  background-color: #000;
+  color: #fff;
+}
+
+#logout-btn {
+  background-color: #ccc;
+  color: #333;
+}
+
+.user-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  vertical-align: middle;
+  margin-right: 5px;
+}
+
+.tabs {
+  display: flex;
+  margin: 24px 0 20px;
+  border-bottom: 2px solid #ddd;
+}
+
+.tab-btn {
+  flex: 1;
+  min-height: 48px;
+  padding: 10px 12px;
+  border: none;
+  background: none;
+  color: #888;
+  font-size: 16px;
+  font-weight: bold;
+  line-height: 1.35;
+}
+
+.tab-btn.active {
+  color: #007bff;
+  border-bottom: 3px solid #007bff;
+}
+
+.tab-content {
+  display: none;
+  position: relative;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+input[type="text"],
+input[type="number"],
+select {
+  width: 100%;
+  min-height: 42px;
+  margin-top: 5px;
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #fff;
+}
+
+input[type="number"] {
+  width: 88px;
+}
+
+.search-results {
+  position: absolute;
+  z-index: 10;
+  display: none;
+  width: calc(100% - 30px);
+  max-height: 180px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-top: none;
+  background: #fff;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08);
+}
+
+.search-results div {
+  padding: 10px;
+  cursor: pointer;
+  border-bottom: 1px solid #eee;
+}
+
+.search-results div:hover {
+  background-color: #f0f0f0;
+}
+
+.battle-setup {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.setup-box {
+  flex: 1;
+  padding: 15px;
+  border-radius: 8px;
+  position: relative;
+}
+
+.mine-setup {
+  background-color: #e6f2ff;
+}
+
+.opponent-setup {
+  background-color: #ffe6e6;
+}
+
+.search-area {
+  min-height: 110px;
+  position: relative;
+}
+
+.or-text {
+  margin: 8px 0;
+  color: #666;
+  font-size: 0.9em;
+  text-align: center;
+}
+
 .stats-input {
   margin-top: 10px;
   padding: 15px;
-  background: rgba(255, 255, 255, 0.7); /* 赤/青背景どちらでも馴染む半透明の白 */
+  border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 8px;
-  border: 1px solid rgba(0,0,0,0.1);
+  background: rgba(255, 255, 255, 0.72);
 }
-.selected-name { font-weight: bold; font-size: 18px; display: block; margin-bottom: 10px; color: #333; border-bottom: 2px solid #ddd; padding-bottom: 5px;}
-.inputs-row { margin-bottom: 10px; }
-.checkbox-row { margin-bottom: 10px; display: flex; gap: 15px; }
 
-/* メガシンカボタン */
-.mega-buttons { margin-top: 15px; display: flex; flex-wrap: wrap; gap: 5px; }
-.mega-buttons button { background: #6c757d; color: #fff; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.9em; }
-.mega-buttons button.active { background: #007bff; font-weight: bold; } /* 選択中の色を青系に */
+.selected-name {
+  display: block;
+  margin-bottom: 10px;
+  padding-bottom: 5px;
+  border-bottom: 2px solid #ddd;
+  color: #333;
+  font-size: 18px;
+  font-weight: bold;
+}
 
-/* 計算結果（積み上げUI） */
-.battle-results { display: flex; flex-direction: column; gap: 5px; margin-top: 20px; background: #f8f9fa; padding: 15px; border-radius: 8px; }
-.result-row { display: flex; padding: 10px; border-radius: 4px; font-weight: bold; width: 65%; }
-.result-mine { align-self: flex-start; background-color: #007bff; color: white; justify-content: flex-start; }
-.result-opp { align-self: flex-end; background-color: #dc3545; color: white; justify-content: flex-end; }
-.speed-val { font-size: 1.2em; margin: 0 15px; }
-.save-btn { margin-top: 15px; background: #28a745; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; }
+.inputs-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.inputs-row button,
+.save-btn {
+  min-height: 38px;
+  border: none;
+  border-radius: 4px;
+  font-weight: bold;
+}
+
+.inputs-row button {
+  padding: 7px 12px;
+  background: #e9ecef;
+  color: #333;
+}
+
+.checkbox-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 15px;
+  margin-bottom: 10px;
+}
+
+.checkbox-row label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mega-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 15px;
+}
+
+.mega-buttons button {
+  min-height: 38px;
+  padding: 7px 12px;
+  border: none;
+  border-radius: 4px;
+  background: #6c757d;
+  color: #fff;
+  font-size: 0.9em;
+  font-weight: bold;
+}
+
+.mega-buttons button.active {
+  background: #007bff;
+}
+
+#opp-mega-buttons-area button.active {
+  background-color: #dc3545;
+}
+
+.battle-results {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-top: 20px;
+  padding: 15px;
+  border-radius: 8px;
+  background: #f8f9fa;
+}
+
+.battle-results:empty {
+  display: none;
+}
+
+.battle-results h3 {
+  margin: 0 0 6px;
+}
+
+.result-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 65%;
+  padding: 10px;
+  border-radius: 4px;
+  font-weight: bold;
+}
+
+.result-row span:first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.result-mine {
+  align-self: flex-start;
+  justify-content: flex-start;
+  background-color: #007bff;
+  color: white;
+}
+
+.result-opp {
+  align-self: flex-end;
+  justify-content: flex-end;
+  background-color: #dc3545;
+  color: white;
+  text-align: right;
+}
+
+.speed-val {
+  flex: 0 0 auto;
+  margin-left: auto;
+  font-size: 1.2em;
+}
+
+.save-btn {
+  margin-top: 15px;
+  padding: 8px 15px;
+  background: #28a745;
+  color: white;
+}
+
+.registered-list {
+  margin: 0;
+}
+
+.registered-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px dashed #ccc;
+}
+
+.list-info {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  gap: 10px;
+}
+
+.list-info span {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.memo-input {
+  flex: 1;
+  min-width: 100px;
+  margin: 0;
+  padding: 6px 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+.list-actions {
+  display: flex;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.list-actions button {
+  min-width: 52px;
+  min-height: 34px;
+  padding: 5px 9px;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.85em;
+  font-weight: bold;
+}
+
+.edit-btn {
+  background-color: #ffc107;
+  color: #333;
+}
+
+.delete-btn {
+  background-color: #dc3545;
+  color: #fff;
+}
+
+@media (max-width: 640px) {
+  body {
+    padding: 0;
+    background: #fff;
+    font-size: 16px;
+  }
+
+  .container {
+    width: 100%;
+    min-height: 100vh;
+    padding: 14px;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .header-area {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  h1 {
+    font-size: 26px;
+    letter-spacing: 0;
+  }
+
+  h2 {
+    margin-bottom: 10px;
+    font-size: 19px;
+  }
+
+  .auth-area {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  #user-status {
+    flex: 1;
+    overflow-wrap: anywhere;
+  }
+
+  .login-msg {
+    flex: 1;
+  }
+
+  .auth-area button {
+    min-height: 34px;
+    padding: 6px 10px;
+    white-space: nowrap;
+  }
+
+  .user-icon {
+    width: 22px;
+    height: 22px;
+  }
+
+  .tabs {
+    margin: 16px 0;
+  }
+
+  .tab-btn {
+    min-height: 46px;
+    padding: 8px 6px;
+    font-size: 14px;
+  }
+
+  .battle-setup {
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .setup-box {
+    padding: 12px;
+  }
+
+  .search-area {
+    min-height: 0;
+  }
+
+  input[type="text"],
+  input[type="number"],
+  select {
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .search-results {
+    width: calc(100% - 24px);
+    max-height: 220px;
+  }
+
+  #register-tab .search-results {
+    width: 100%;
+  }
+
+  .stats-input {
+    padding: 12px;
+  }
+
+  .selected-name {
+    font-size: 17px;
+  }
+
+  .inputs-row {
+    flex-wrap: wrap;
+  }
+
+  .checkbox-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .mega-buttons {
+    gap: 7px;
+  }
+
+  .mega-buttons button {
+    flex: 1 1 auto;
+    min-width: 92px;
+  }
+
+  .battle-results {
+    gap: 8px;
+    margin-top: 14px;
+    padding: 12px;
+  }
+
+  .battle-results h3 {
+    font-size: 17px;
+  }
+
+  .result-row {
+    width: 100%;
+    min-height: 46px;
+    padding: 9px 10px;
+    font-size: 14px;
+  }
+
+  .result-mine {
+    border-left: 5px solid #0056b3;
+  }
+
+  .result-opp {
+    border-right: 5px solid #a71d2a;
+  }
+
+  .speed-val {
+    font-size: 17px;
+  }
+
+  #register-tab h2 {
+    font-size: 22px;
+  }
+
+  .registered-list {
+    padding: 0 !important;
+  }
+
+  .registered-item {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 14px 0;
+  }
+
+  .list-info {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .list-info span {
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+    font-weight: bold;
+  }
+
+  .memo-input {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .list-actions {
+    width: 100%;
+  }
+
+  .list-actions button {
+    flex: 1;
+    min-height: 40px;
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 360px) {
+  .container {
+    padding: 12px;
+  }
+
+  h1 {
+    font-size: 24px;
+  }
+
+  .auth-area {
+    font-size: 11px;
+  }
+
+  .tab-btn {
+    font-size: 13px;
+  }
+}
