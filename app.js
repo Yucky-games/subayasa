@@ -288,7 +288,7 @@ function updateRegisteredList() {
     li.className = 'registered-item';
     li.innerHTML = `
       <div class="list-info">
-        <span style="white-space: nowrap;">${p.name} (実数値: ${p.actualSpeed}) ${p.hasScarf ? '🧣' : ''}</span>
+        <span class="pokemon-summary">${p.name} (実数値: ${p.actualSpeed}) ${p.hasScarf ? '<img src="scarf.png" class="scarf-icon" alt="こだわりスカーフ" title="こだわりスカーフ">' : ''}</span>
         <input type="text" class="memo-input" placeholder="メモ追加" value="${p.memo || ''}">
       </div>
       <div class="list-actions">
