@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth, signInAnonymously, onAuthStateChanged, TwitterAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getAuth, onAuthStateChanged, TwitterAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -26,29 +26,34 @@ let baseOpponent = null;
 
 onAuthStateChanged(auth, async (user) => {
   const statusSpan = document.getElementById('user-status');
+  const loginMsg = document.getElementById('login-message');
   const loginBtn = document.getElementById('login-x-btn');
   const logoutBtn = document.getElementById('logout-btn');
 
   if (user) {
+    // ログイン中の処理
     currentUser = user;
+    const displayName = user.displayName || "Xユーザー";
     
-    if (user.isAnonymous) {
-      statusSpan.textContent = "👤 ゲスト(匿名)モード";
-      loginBtn.style.display = "inline-block";
-      logoutBtn.style.display = "none";
-    } else {
-      const displayName = user.displayName || "Xユーザー";
-      statusSpan.textContent = `✅ ${displayName} としてログイン中`;
-      loginBtn.style.display = "none";
-      logoutBtn.style.display = "inline-block";
-    }
+    loginMsg.style.display = "none";
+    statusSpan.textContent = `✅ ${displayName} としてログイン中`;
+    statusSpan.style.display = "inline";
+    loginBtn.style.display = "none";
+    logoutBtn.style.display = "inline-block";
 
     await loadMyPokemons();
   } else {
-    statusSpan.textContent = "通信中...";
-    loginBtn.style.display = "none";
+    // 未ログイン時の処理
+    currentUser = null;
+    
+    loginMsg.style.display = "inline";
+    statusSpan.style.display = "none";
+    loginBtn.style.display = "inline-block";
     logoutBtn.style.display = "none";
-    signInAnonymously(auth).catch(error => console.error("ログインエラー:", error));
+    
+    // 未ログイン時はリストを初期化
+    myRegisteredPokemons = [];
+    updateRegisteredList();
   }
 });
 
@@ -63,8 +68,6 @@ window.loginWithX = async function() {
 
 window.logout = async function() {
   try {
-    myRegisteredPokemons = []; 
-    updateRegisteredList();
     await signOut(auth);
   } catch (error) {
     console.error("ログアウトエラー:", error);
@@ -98,8 +101,9 @@ async function loadMyPokemons() {
 }
 
 window.saveMyPokemons = async function() {
+  // ログインしていない場合はクラウド保存を行わず終了
   if (!currentUser) {
-    alert("エラー：ログイン処理が完了していません。");
+    console.log("未ログインのためクラウド保存をスキップしました。");
     return;
   }
   try {
