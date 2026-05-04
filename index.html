@@ -18,7 +18,6 @@
     
     .registered-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px dashed #ccc; }
     
-    /* ★追加：リストの情報を横並びにして、メモ欄を広げる設定 */
     .list-info { display: flex; align-items: center; flex-grow: 1; }
     .memo-input { flex-grow: 1; margin: 0 10px; padding: 4px 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9em; min-width: 80px; }
     
@@ -32,7 +31,8 @@
     <div class="header-area">
       <h1>素早さチェッカー</h1>
       <div class="auth-area">
-        <span id="login-message" class="login-msg" style="display:none;">自分のポケモンを保存する場合にはログインが必要です。</span>
+        <!-- ★変更：ここのテキストを差し替えました -->
+        <span id="login-message" class="login-msg" style="display:none;">登録した自分のポケモンを保存したままにするにはログインが必要です。</span>
         <span id="user-status" style="display:none;"></span>
         <button id="login-x-btn" onclick="loginWithX()" style="display:none;">Xでログイン</button>
         <button id="logout-btn" onclick="logout()" style="display:none;">ログアウト</button>
