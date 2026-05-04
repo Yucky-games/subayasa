@@ -10,7 +10,6 @@
   <div class="container">
     <h1>素早さチェッカー</h1>
     
-    <!-- タブ切り替えボタン -->
     <div class="tabs">
       <button class="tab-btn active" onclick="switchTab('check')">素早さチェック</button>
       <button class="tab-btn" onclick="switchTab('register')">自分のポケモン登録</button>
@@ -21,39 +20,51 @@
       <div class="battle-setup">
         <div class="setup-box mine-setup">
           <h2>自分のポケモン</h2>
-          <select id="my-registered-select">
-            <option value="">登録済みから選ぶ...</option>
-          </select>
-          <p>または</p>
-          <input type="text" id="my-search-check" placeholder="名前で検索 (例: ふしぎ)">
-          <div id="my-search-results-check" class="search-results"></div>
+          <!-- 高さを揃えるための検索エリア -->
+          <div class="search-area">
+            <select id="my-registered-select">
+              <option value="">登録済みから選ぶ...</option>
+            </select>
+            <p class="or-text">または</p>
+            <input type="text" id="my-search-check" placeholder="名前で検索 (例: ふしぎ)">
+            <div id="my-search-results-check" class="search-results"></div>
+          </div>
+          
+          <!-- 自分のポケモンの枠 -->
           <div class="stats-input" id="my-stats-check" style="display: none;">
             <span id="my-selected-name-check" class="selected-name"></span>
-            <div>
+            <div class="inputs-row">
               <input type="number" id="my-points-check" min="0" max="32" value="0"> pt
               <button onclick="document.getElementById('my-points-check').value = 32; updateBattle()">全振り</button>
             </div>
-            <label><input type="checkbox" id="my-nature-check" onchange="updateBattle()"> 性格補正(1.1倍)</label>
-            <label><input type="checkbox" id="my-scarf-check" onchange="updateBattle()"> スカーフ</label>
+            <div class="checkbox-row">
+              <label><input type="checkbox" id="my-nature-check" onchange="updateBattle()"> 性格補正(1.1倍)</label>
+              <label><input type="checkbox" id="my-scarf-check" onchange="updateBattle()"> スカーフ</label>
+            </div>
+            <!-- 自分用のメガシンカボタン -->
+            <div id="my-mega-buttons-area" class="mega-buttons"></div>
           </div>
         </div>
 
         <div class="setup-box opponent-setup">
           <h2>相手のポケモン</h2>
-          <input type="text" id="opp-search" placeholder="名前で検索 (例: りざー)">
-          <div id="opp-search-results" class="search-results"></div>
-          <div id="opp-selected-area" style="display: none;">
+          <!-- 高さを揃えるための検索エリア -->
+          <div class="search-area">
+            <input type="text" id="opp-search" placeholder="名前で検索 (例: りざー)">
+            <div id="opp-search-results" class="search-results"></div>
+          </div>
+          
+          <!-- 相手のポケモンの枠（自分側と同じデザイン） -->
+          <div class="stats-input" id="opp-selected-area" style="display: none;">
             <span id="opp-selected-name" class="selected-name"></span>
-            <!-- メガシンカボタン表示エリア -->
-            <div id="mega-buttons-area" class="mega-buttons"></div>
+            <!-- 相手用のメガシンカボタン -->
+            <div id="opp-mega-buttons-area" class="mega-buttons"></div>
           </div>
         </div>
       </div>
 
       <!-- 計算結果エリア -->
-      <div id="battle-results" class="battle-results">
-        <!-- ここに積み上げUIがJavaScriptで生成されます -->
-      </div>
+      <div id="battle-results" class="battle-results"></div>
     </div>
 
     <!-- タブ2：自分のポケモン登録 -->
@@ -64,12 +75,14 @@
       
       <div class="stats-input" id="reg-stats" style="display: none;">
         <span id="reg-selected-name" class="selected-name"></span>
-        <div>
+        <div class="inputs-row">
           素早さポイント: <input type="number" id="reg-points" min="0" max="32" value="0">
           <button onclick="document.getElementById('reg-points').value = 32">全振り</button>
         </div>
-        <label><input type="checkbox" id="reg-nature"> 性格補正あり(1.1倍)</label>
-        <label><input type="checkbox" id="reg-scarf"> こだわりスカーフ</label>
+        <div class="checkbox-row">
+          <label><input type="checkbox" id="reg-nature"> 性格補正あり(1.1倍)</label>
+          <label><input type="checkbox" id="reg-scarf"> こだわりスカーフ</label>
+        </div>
         <button class="save-btn" onclick="registerMyPokemon()">登録する</button>
       </div>
 
