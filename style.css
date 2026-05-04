@@ -32,8 +32,8 @@ select {
 }
 
 .header-area {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   gap: 16px;
 }
@@ -41,6 +41,7 @@ select {
 h1 {
   margin: 0;
   line-height: 1.2;
+  white-space: nowrap;
 }
 
 h2 {
@@ -52,7 +53,9 @@ h2 {
   display: flex;
   align-items: center;
   justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 10px;
+  min-width: 0;
   font-size: 0.9em;
 }
 
@@ -65,8 +68,10 @@ h2 {
 }
 
 .login-msg {
+  max-width: 420px;
   color: #dc3545;
   font-weight: bold;
+  line-height: 1.45;
 }
 
 #login-x-btn {
@@ -421,6 +426,7 @@ input[type="number"] {
   }
 
   .header-area {
+    display: flex;
     flex-direction: column;
     align-items: stretch;
     gap: 10px;
@@ -429,6 +435,7 @@ input[type="number"] {
   h1 {
     font-size: 26px;
     letter-spacing: 0;
+    white-space: normal;
   }
 
   h2 {
@@ -452,6 +459,7 @@ input[type="number"] {
 
   .login-msg {
     flex: 1;
+    max-width: none;
   }
 
   .auth-area button {
