@@ -356,6 +356,19 @@ input[type="number"] {
   white-space: nowrap;
 }
 
+.pokemon-summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.scarf-icon {
+  width: 24px;
+  height: 24px;
+  image-rendering: pixelated;
+  vertical-align: middle;
+}
+
 .memo-input {
   flex: 1;
   min-width: 100px;
