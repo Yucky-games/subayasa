@@ -5,22 +5,34 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>素早さチェッカー｜ポケモンチャンピオンズ</title>
   <link rel="stylesheet" href="style.css">
+  <style>
+    .header-area { display: flex; justify-content: space-between; align-items: center; }
+    .auth-area { font-size: 0.9em; }
+    .auth-area button { margin-left: 10px; padding: 5px 10px; cursor: pointer; border-radius: 4px; border: none; font-weight: bold; }
+    #login-x-btn { background-color: #000; color: #fff; }
+    #logout-btn { background-color: #ccc; color: #333; }
+  </style>
 </head>
 <body>
   <div class="container">
-    <h1>素早さチェッカー</h1>
+    <div class="header-area">
+      <h1>素早さチェッカー</h1>
+      <div class="auth-area">
+        <span id="user-status">読み込み中...</span>
+        <button id="login-x-btn" onclick="loginWithX()" style="display:none;">Xでログイン</button>
+        <button id="logout-btn" onclick="logout()" style="display:none;">ログアウト</button>
+      </div>
+    </div>
     
     <div class="tabs">
       <button class="tab-btn active" onclick="switchTab('check')">素早さチェック</button>
       <button class="tab-btn" onclick="switchTab('register')">自分のポケモン登録</button>
     </div>
 
-    <!-- タブ1：素早さチェック -->
     <div id="check-tab" class="tab-content active">
       <div class="battle-setup">
         <div class="setup-box mine-setup">
           <h2>自分のポケモン</h2>
-          <!-- 高さを揃えるための検索エリア -->
           <div class="search-area">
             <select id="my-registered-select">
               <option value="">登録済みから選ぶ...</option>
@@ -30,7 +42,6 @@
             <div id="my-search-results-check" class="search-results"></div>
           </div>
           
-          <!-- 自分のポケモンの枠 -->
           <div class="stats-input" id="my-stats-check" style="display: none;">
             <span id="my-selected-name-check" class="selected-name"></span>
             <div class="inputs-row">
@@ -41,33 +52,27 @@
               <label><input type="checkbox" id="my-nature-check" onchange="updateBattle()"> 性格補正(1.1倍)</label>
               <label><input type="checkbox" id="my-scarf-check" onchange="updateBattle()"> スカーフ</label>
             </div>
-            <!-- 自分用のメガシンカボタン -->
             <div id="my-mega-buttons-area" class="mega-buttons"></div>
           </div>
         </div>
 
         <div class="setup-box opponent-setup">
           <h2>相手のポケモン</h2>
-          <!-- 高さを揃えるための検索エリア -->
           <div class="search-area">
             <input type="text" id="opp-search" placeholder="名前で検索 (例: りざー)">
             <div id="opp-search-results" class="search-results"></div>
           </div>
           
-          <!-- 相手のポケモンの枠（自分側と同じデザイン） -->
           <div class="stats-input" id="opp-selected-area" style="display: none;">
             <span id="opp-selected-name" class="selected-name"></span>
-            <!-- 相手用のメガシンカボタン -->
             <div id="opp-mega-buttons-area" class="mega-buttons"></div>
           </div>
         </div>
       </div>
 
-      <!-- 計算結果エリア -->
       <div id="battle-results" class="battle-results"></div>
     </div>
 
-    <!-- タブ2：自分のポケモン登録 -->
     <div id="register-tab" class="tab-content">
       <h2>新規登録</h2>
       <input type="text" id="reg-search" placeholder="名前で検索 (例: ふしぎ)">
@@ -91,6 +96,6 @@
     </div>
   </div>
 
-<script type="module" src="app.js"></script>
+  <script type="module" src="app.js"></script>
 </body>
 </html>
