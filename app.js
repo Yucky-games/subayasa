@@ -1,9 +1,7 @@
-// --- 1. Firebaseの読み込みと初期化 ---
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getAuth, signInAnonymously, onAuthStateChanged, TwitterAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-// 先ほどいただいたFirebaseの接続キー
 const firebaseConfig = {
   apiKey: "AIzaSyAprIcaJ4VhhXjE6XKJ8DjxOVkpSs-vH98",
   authDomain: "pokemon-subayasa-checker.firebaseapp.com",
@@ -16,10 +14,9 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+const twitterProvider = new TwitterAuthProvider();
 
 let currentUser = null;
-
-// --- 2. 既存の変数 ---
 let pokemonData = [];
 let myRegisteredPokemons = [];
 let currentCheckMine = null;
@@ -27,16 +24,52 @@ let currentCheckOpp = null;
 let baseMine = null;
 let baseOpponent = null;
 
-// --- 3. アプリ起動時の処理（ログインとデータ読み込み） ---
 onAuthStateChanged(auth, async (user) => {
+  const statusSpan = document.getElementById('user-status');
+  const loginBtn = document.getElementById('login-x-btn');
+  const logoutBtn = document.getElementById('logout-btn');
+
   if (user) {
     currentUser = user;
-    console.log("ログイン成功 UID:", user.uid);
-    await loadMyPokemons(); // クラウドからデータを読み込む
+    
+    if (user.isAnonymous) {
+      statusSpan.textContent = "👤 ゲスト(匿名)モード";
+      loginBtn.style.display = "inline-block";
+      logoutBtn.style.display = "none";
+    } else {
+      const displayName = user.displayName || "Xユーザー";
+      statusSpan.textContent = `✅ ${displayName} としてログイン中`;
+      loginBtn.style.display = "none";
+      logoutBtn.style.display = "inline-block";
+    }
+
+    await loadMyPokemons();
   } else {
+    statusSpan.textContent = "通信中...";
+    loginBtn.style.display = "none";
+    logoutBtn.style.display = "none";
     signInAnonymously(auth).catch(error => console.error("ログインエラー:", error));
   }
 });
+
+window.loginWithX = async function() {
+  try {
+    await signInWithPopup(auth, twitterProvider);
+  } catch (error) {
+    console.error("Xログインエラー:", error);
+    alert("Xログインに失敗しました。時間をおいて再度お試しください。");
+  }
+}
+
+window.logout = async function() {
+  try {
+    myRegisteredPokemons = []; 
+    updateRegisteredList();
+    await signOut(auth);
+  } catch (error) {
+    console.error("ログアウトエラー:", error);
+  }
+}
 
 window.onload = async () => {
   try {
@@ -48,33 +81,40 @@ window.onload = async () => {
   }
 };
 
-// --- 4. Firestore (データベース) との通信処理 ---
 async function loadMyPokemons() {
   if (!currentUser) return;
-  const docRef = doc(db, "users", currentUser.uid);
-  const docSnap = await getDoc(docRef);
-  if (docSnap.exists()) {
-    myRegisteredPokemons = docSnap.data().pokemons || [];
+  try {
+    const docRef = doc(db, "users", currentUser.uid);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      myRegisteredPokemons = docSnap.data().pokemons || [];
+    } else {
+      myRegisteredPokemons = [];
+    }
     updateRegisteredList();
+  } catch (error) {
+    console.error("データ読み込みエラー:", error);
   }
 }
 
-async function saveMyPokemons() {
-  if (!currentUser) return;
-  const docRef = doc(db, "users", currentUser.uid);
-  await setDoc(docRef, { pokemons: myRegisteredPokemons });
+window.saveMyPokemons = async function() {
+  if (!currentUser) {
+    alert("エラー：ログイン処理が完了していません。");
+    return;
+  }
+  try {
+    const docRef = doc(db, "users", currentUser.uid);
+    await setDoc(docRef, { pokemons: myRegisteredPokemons });
+  } catch (error) {
+    alert("保存エラーが発生しました: " + error.message);
+    console.error("エラー詳細:", error);
+  }
 }
 
-// --- 5. UIロジック（HTMLから呼び出せるように window に登録） ---
 window.switchTab = function(tabId) {
-  // すべてのタブの中身とボタンの青い線をリセット
   document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
   document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-  
-  // 選ばれたタブの中身を表示
   document.getElementById(`${tabId}-tab`).classList.add('active');
-
-  // 選ばれたボタンに青い線を付ける
   document.querySelectorAll('.tab-btn').forEach(btn => {
     if (btn.getAttribute('onclick').includes(tabId)) {
       btn.classList.add('active');
@@ -133,7 +173,6 @@ function calcActualSpeed(baseSpeed, points, isNatureUp, hasScarf) {
   return stat;
 }
 
-// --- 自分のポケモン登録 ---
 let tempRegisterTarget = null;
 function selectForRegister(pokemon) {
   tempRegisterTarget = pokemon;
@@ -152,8 +191,7 @@ window.registerMyPokemon = async function() {
   myRegisteredPokemons.push(newData);
   updateRegisteredList();
   
-  // ★ Firebaseに保存する処理を呼び出し ★
-  await saveMyPokemons();
+  await window.saveMyPokemons();
   
   document.getElementById('reg-stats').style.display = 'none';
   tempRegisterTarget = null;
@@ -187,7 +225,6 @@ function updateRegisteredList() {
   };
 }
 
-// --- 素早さチェックタブの処理 ---
 function selectForMyCheck(pokemon) {
   baseMine = pokemon;
   document.getElementById('my-registered-select').value = ""; 
