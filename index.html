@@ -13,11 +13,15 @@
     #login-x-btn { background-color: #000; color: #fff; }
     #logout-btn { background-color: #ccc; color: #333; }
     
-    /* ★追加：Xアイコンとリスト操作ボタン、相手メガボタンの色 */
     .user-icon { width: 24px; height: 24px; border-radius: 50%; vertical-align: middle; margin-right: 5px; }
-    #opp-mega-buttons-area button.active { background-color: #dc3545 !important; } /* 相手のメガシンカは赤 */
+    #opp-mega-buttons-area button.active { background-color: #dc3545 !important; }
     
     .registered-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px dashed #ccc; }
+    
+    /* ★追加：リストの情報を横並びにして、メモ欄を広げる設定 */
+    .list-info { display: flex; align-items: center; flex-grow: 1; }
+    .memo-input { flex-grow: 1; margin: 0 10px; padding: 4px 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9em; min-width: 80px; }
+    
     .list-actions button { margin-left: 5px; padding: 4px 8px; cursor: pointer; border-radius: 4px; border: none; font-size: 0.85em; font-weight: bold; }
     .edit-btn { background-color: #ffc107; color: #333; }
     .delete-btn { background-color: #dc3545; color: #fff; }
@@ -29,7 +33,6 @@
       <h1>素早さチェッカー</h1>
       <div class="auth-area">
         <span id="login-message" class="login-msg" style="display:none;">自分のポケモンを保存する場合にはログインが必要です。</span>
-        <!-- Xのアイコンもここに入ります -->
         <span id="user-status" style="display:none;"></span>
         <button id="login-x-btn" onclick="loginWithX()" style="display:none;">Xでログイン</button>
         <button id="logout-btn" onclick="logout()" style="display:none;">ログアウト</button>
@@ -46,7 +49,6 @@
         <div class="setup-box mine-setup">
           <h2>自分のポケモン</h2>
           <div class="search-area">
-            <!-- ★変更：名前検索を上に、登録済みを下にスワップ -->
             <input type="text" id="my-search-check" placeholder="名前で検索 (例: ふしぎ)">
             <div id="my-search-results-check" class="search-results"></div>
             
