@@ -1,6 +1,16 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-YYDFT7XRW0"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-YYDFT7XRW0');
+  </script>
+
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>素早さチェッカー｜ポケモンチャンピオンズ</title>
@@ -31,7 +41,6 @@
     <div class="header-area">
       <h1>素早さチェッカー</h1>
       <div class="auth-area">
-        <!-- ★変更：ここのテキストを差し替えました -->
         <span id="login-message" class="login-msg" style="display:none;">登録した自分のポケモンを保存したままにするにはログインが必要です。</span>
         <span id="user-status" style="display:none;"></span>
         <button id="login-x-btn" onclick="loginWithX()" style="display:none;">Xでログイン</button>
