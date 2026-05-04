@@ -12,6 +12,15 @@
     .login-msg { color: #dc3545; font-weight: bold; margin-right: 10px; }
     #login-x-btn { background-color: #000; color: #fff; }
     #logout-btn { background-color: #ccc; color: #333; }
+    
+    /* ★追加：Xアイコンとリスト操作ボタン、相手メガボタンの色 */
+    .user-icon { width: 24px; height: 24px; border-radius: 50%; vertical-align: middle; margin-right: 5px; }
+    #opp-mega-buttons-area button.active { background-color: #dc3545 !important; } /* 相手のメガシンカは赤 */
+    
+    .registered-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px dashed #ccc; }
+    .list-actions button { margin-left: 5px; padding: 4px 8px; cursor: pointer; border-radius: 4px; border: none; font-size: 0.85em; font-weight: bold; }
+    .edit-btn { background-color: #ffc107; color: #333; }
+    .delete-btn { background-color: #dc3545; color: #fff; }
   </style>
 </head>
 <body>
@@ -19,9 +28,8 @@
     <div class="header-area">
       <h1>素早さチェッカー</h1>
       <div class="auth-area">
-        <!-- 未ログイン時のみ表示されるメッセージ -->
         <span id="login-message" class="login-msg" style="display:none;">自分のポケモンを保存する場合にはログインが必要です。</span>
-        <!-- ログイン時のみ表示されるステータス -->
+        <!-- Xのアイコンもここに入ります -->
         <span id="user-status" style="display:none;"></span>
         <button id="login-x-btn" onclick="loginWithX()" style="display:none;">Xでログイン</button>
         <button id="logout-btn" onclick="logout()" style="display:none;">ログアウト</button>
@@ -38,12 +46,15 @@
         <div class="setup-box mine-setup">
           <h2>自分のポケモン</h2>
           <div class="search-area">
+            <!-- ★変更：名前検索を上に、登録済みを下にスワップ -->
+            <input type="text" id="my-search-check" placeholder="名前で検索 (例: ふしぎ)">
+            <div id="my-search-results-check" class="search-results"></div>
+            
+            <p class="or-text">または</p>
+            
             <select id="my-registered-select">
               <option value="">登録済みから選ぶ...</option>
             </select>
-            <p class="or-text">または</p>
-            <input type="text" id="my-search-check" placeholder="名前で検索 (例: ふしぎ)">
-            <div id="my-search-results-check" class="search-results"></div>
           </div>
           
           <div class="stats-input" id="my-stats-check" style="display: none;">
@@ -92,11 +103,11 @@
           <label><input type="checkbox" id="reg-nature"> 性格補正あり(1.1倍)</label>
           <label><input type="checkbox" id="reg-scarf"> こだわりスカーフ</label>
         </div>
-        <button class="save-btn" onclick="registerMyPokemon()">登録する</button>
+        <button id="reg-save-btn" class="save-btn" onclick="registerMyPokemon()">登録する</button>
       </div>
 
       <h2>登録済み一覧</h2>
-      <ul id="registered-list" class="registered-list"></ul>
+      <ul id="registered-list" class="registered-list" style="list-style: none; padding: 0;"></ul>
     </div>
   </div>
 
