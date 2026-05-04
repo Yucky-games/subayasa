@@ -34,16 +34,13 @@ onAuthStateChanged(auth, async (user) => {
   if (user) {
     currentUser = user;
     const displayName = user.displayName || "Xユーザー";
-    
     const photoURL = user.photoURL;
     const iconHtml = photoURL ? `<img src="${photoURL}" class="user-icon" alt="icon">` : `✅`;
-    
     loginMsg.style.display = "none";
     statusSpan.innerHTML = `${iconHtml} ${displayName} としてログイン中`;
     statusSpan.style.display = "inline";
     loginBtn.style.display = "none";
     logoutBtn.style.display = "inline-block";
-
     await loadMyPokemons();
   } else {
     currentUser = null;
@@ -51,7 +48,6 @@ onAuthStateChanged(auth, async (user) => {
     statusSpan.style.display = "none";
     loginBtn.style.display = "inline-block";
     logoutBtn.style.display = "none";
-    
     myRegisteredPokemons = [];
     updateRegisteredList();
   }
@@ -139,7 +135,6 @@ function setupSearchListeners() {
 function setupSearch(inputId, resultsId, onSelectCallback) {
   const input = document.getElementById(inputId);
   const resultsDiv = document.getElementById(resultsId);
-
   input.addEventListener('input', (e) => {
     const query = hiraToKata(e.target.value.trim());
     resultsDiv.innerHTML = '';
@@ -174,7 +169,6 @@ function calcActualSpeed(baseSpeed, points, isNatureUp, hasScarf) {
 }
 
 let tempRegisterTarget = null;
-
 function selectForRegister(pokemon) {
   editingIndex = -1;
   document.getElementById('reg-save-btn').textContent = "登録する";
@@ -189,11 +183,8 @@ window.registerMyPokemon = async function() {
   const isNatureUp = document.getElementById('reg-nature').checked;
   const hasScarf = document.getElementById('reg-scarf').checked;
   const actualSpeed = calcActualSpeed(tempRegisterTarget.baseSpeed, points, isNatureUp, hasScarf);
-
   const newData = { ...tempRegisterTarget, points, isNatureUp, hasScarf, actualSpeed, memo: "" };
-  
   if (editingIndex >= 0) {
-    // 編集時は既存のメモを引き継ぐ
     newData.memo = myRegisteredPokemons[editingIndex].memo || "";
     myRegisteredPokemons[editingIndex] = newData;
     editingIndex = -1;
@@ -201,10 +192,8 @@ window.registerMyPokemon = async function() {
   } else {
     myRegisteredPokemons.push(newData);
   }
-  
   updateRegisteredList();
   await window.saveMyPokemons();
-  
   document.getElementById('reg-stats').style.display = 'none';
   tempRegisterTarget = null;
 }
@@ -213,14 +202,12 @@ window.editPokemon = function(index) {
   editingIndex = index;
   const p = myRegisteredPokemons[index];
   tempRegisterTarget = p;
-  
   document.getElementById('reg-selected-name').textContent = p.name + " (編集中)";
   document.getElementById('reg-points').value = p.points;
   document.getElementById('reg-nature').checked = p.isNatureUp;
   document.getElementById('reg-scarf').checked = p.hasScarf;
   document.getElementById('reg-save-btn').textContent = "更新する";
   document.getElementById('reg-stats').style.display = 'block';
-  
   window.switchTab('register');
 }
 
@@ -230,7 +217,6 @@ window.deletePokemon = async function(index) {
     myRegisteredPokemons.splice(index, 1);
     updateRegisteredList();
     await window.saveMyPokemons();
-    
     if (currentCheckMine && !myRegisteredPokemons.includes(currentCheckMine)) {
       currentCheckMine = null;
       document.getElementById('my-stats-check').style.display = 'none';
@@ -245,8 +231,6 @@ function updateRegisteredList() {
   myRegisteredPokemons.forEach((p, index) => {
     const li = document.createElement('li');
     li.className = 'registered-item';
-    
-    // ★変更：テキストボックス（メモ欄）を生成して配置
     li.innerHTML = `
       <div class="list-info">
         <span style="white-space: nowrap;">${p.name} (実数値: ${p.actualSpeed}) ${p.hasScarf ? '🧣' : ''}</span>
@@ -257,34 +241,27 @@ function updateRegisteredList() {
         <button class="delete-btn" onclick="deletePokemon(${index})">削除</button>
       </div>
     `;
-    
-    // ★追加：メモ欄への入力・変更があった時に自動保存する処理
     const memoInput = li.querySelector('.memo-input');
     memoInput.addEventListener('change', async (e) => {
       myRegisteredPokemons[index].memo = e.target.value;
       await window.saveMyPokemons();
-      updateSelectDropdown(); // プルダウンの表示だけ更新
+      updateSelectDropdown();
     });
-    
     ul.appendChild(li);
   });
-
   updateSelectDropdown();
 }
 
-// プルダウンだけを更新する独立した関数（入力中にフォーカスが外れないようにするため）
 function updateSelectDropdown() {
   const select = document.getElementById('my-registered-select');
   select.innerHTML = '<option value="">登録済みから選ぶ...</option>';
   myRegisteredPokemons.forEach((p, index) => {
     const opt = document.createElement('option');
     opt.value = index;
-    // メモがあればプルダウンにも表示
     const memoText = p.memo ? ` [${p.memo}]` : '';
     opt.textContent = `${p.name} (実数値: ${p.actualSpeed})${memoText}`;
     select.appendChild(opt);
   });
-  
   select.onchange = (e) => {
     if (e.target.value !== "") {
       const p = myRegisteredPokemons[e.target.value];
@@ -296,8 +273,6 @@ function updateSelectDropdown() {
 }
 
 function selectForMyCheck(pokemon) {
-  baseMine = pokemon;
-  document.getElementById('my-registered-select').value = ""; 
   setMineCheck(pokemon);
   generateMegaButtons(pokemon, true);
 }
@@ -310,7 +285,6 @@ function setMineCheck(pokemon) {
 }
 
 function selectForOppCheck(pokemon) {
-  baseOpponent = pokemon;
   setOpponent(pokemon);
   generateMegaButtons(pokemon, false);
 }
@@ -322,35 +296,52 @@ function setOpponent(pokemon) {
   window.updateBattle();
 }
 
-function generateMegaButtons(basePokemon, isMine) {
+// ★改良版：メガ進化の相互ボタン生成ロジック
+function generateMegaButtons(selectedPokemon, isMine) {
   const containerId = isMine ? 'my-mega-buttons-area' : 'opp-mega-buttons-area';
   const container = document.getElementById(containerId);
   container.innerHTML = '';
-  
-  if (basePokemon.name.includes('メガ')) return;
 
+  // 元のポケモン（通常フォルム）を特定する
+  let basePokemon;
+  if (selectedPokemon.name.startsWith('メガ')) {
+    // 選択されたのがメガの場合：名マから「メガ」を除いて通常フォルムを探す
+    const baseName = selectedPokemon.name.replace(/^メガ(進化した)?/, '');
+    // リザードンのようにメガX/Yがある場合は、通常名に戻すための調整
+    const cleanedBaseName = baseName.replace(/[XY]$/, ''); 
+    basePokemon = pokemonData.find(p => p.name === cleanedBaseName);
+  } else {
+    // 選択されたのが通常の場合
+    basePokemon = selectedPokemon;
+  }
+
+  // もし通常フォルムのデータが見つからなければボタンは出さない
+  if (!basePokemon) return;
+
+  // 通常フォルムから派生するメガ進化たちをすべて探す
   const megas = pokemonData.filter(p => p.name.includes('メガ' + basePokemon.name));
-  
+
+  // メガ進化が存在する場合のみ、通常ボタンとメガボタンを並べる
   if (megas.length > 0) {
+    // 1. 通常フォルムのボタン
     const baseBtn = document.createElement('button');
     baseBtn.textContent = '通常';
-    baseBtn.classList.add('active');
+    if (selectedPokemon.name === basePokemon.name) baseBtn.classList.add('active');
     baseBtn.onclick = () => {
-      if (isMine) setMineCheck(basePokemon);
-      else setOpponent(basePokemon);
-      Array.from(container.children).forEach(b => b.classList.remove('active'));
-      baseBtn.classList.add('active');
+      if (isMine) setMineCheck(basePokemon); else setOpponent(basePokemon);
+      generateMegaButtons(basePokemon, isMine); // ボタンを再描画
     };
     container.appendChild(baseBtn);
 
+    // 2. 各メガ進化のボタン
     megas.forEach(mega => {
       const megaBtn = document.createElement('button');
-      megaBtn.textContent = mega.name;
+      // ボタン表示名は「メガリザードンX」ではなく「メガX」のように短縮すると綺麗
+      megaBtn.textContent = mega.name.replace(basePokemon.name, ''); 
+      if (selectedPokemon.name === mega.name) megaBtn.classList.add('active');
       megaBtn.onclick = () => {
-        if (isMine) setMineCheck(mega);
-        else setOpponent(mega);
-        Array.from(container.children).forEach(b => b.classList.remove('active'));
-        megaBtn.classList.add('active');
+        if (isMine) setMineCheck(mega); else setOpponent(mega);
+        generateMegaButtons(mega, isMine); // ボタンを再描画
       };
       container.appendChild(megaBtn);
     });
@@ -359,10 +350,8 @@ function generateMegaButtons(basePokemon, isMine) {
 
 window.updateBattle = function() {
   if (!currentCheckMine || !currentCheckOpp) return;
-
   let mySpeed;
   let myLabel = currentCheckMine.name;
-  
   if (document.getElementById('my-stats-check').style.display === 'block') {
     const pts = document.getElementById('my-points-check').value;
     const nat = document.getElementById('my-nature-check').checked;
@@ -371,11 +360,9 @@ window.updateBattle = function() {
     if(scf) myLabel += " (スカーフ)";
   } else {
     mySpeed = currentCheckMine.actualSpeed;
-    // ★変更：登録済みから選んだ場合はメモも表示に含める
     if(currentCheckMine.memo) myLabel += ` [${currentCheckMine.memo}]`;
     if(currentCheckMine.hasScarf) myLabel += " (スカーフ)";
   }
-
   const oppBase = currentCheckOpp.baseSpeed;
   const oppPatterns = [
     { label: `${currentCheckOpp.name} (最速スカーフ)`, speed: calcActualSpeed(oppBase, 32, true, true), isMine: false },
@@ -385,13 +372,10 @@ window.updateBattle = function() {
     { label: `${currentCheckOpp.name} (無振りスカーフ)`, speed: calcActualSpeed(oppBase, 0, false, true), isMine: false },
     { label: `${currentCheckOpp.name} (無振り)`, speed: calcActualSpeed(oppBase, 0, false, false), isMine: false },
   ];
-
   const allResults = [...oppPatterns, { label: myLabel, speed: mySpeed, isMine: true }];
   allResults.sort((a, b) => b.speed - a.speed);
-
   const resultDiv = document.getElementById('battle-results');
   resultDiv.innerHTML = '<h3>素早さ関係（上が先制）</h3>';
-  
   allResults.forEach(res => {
     const row = document.createElement('div');
     row.className = `result-row ${res.isMine ? 'result-mine' : 'result-opp'}`;
