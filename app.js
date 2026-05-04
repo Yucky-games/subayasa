@@ -24,6 +24,9 @@ let currentCheckOpp = null;
 let baseMine = null;
 let baseOpponent = null;
 
+// ★追加：現在編集中のポケモンのインデックス（-1なら新規登録）
+let editingIndex = -1;
+
 onAuthStateChanged(auth, async (user) => {
   const statusSpan = document.getElementById('user-status');
   const loginMsg = document.getElementById('login-message');
@@ -31,27 +34,27 @@ onAuthStateChanged(auth, async (user) => {
   const logoutBtn = document.getElementById('logout-btn');
 
   if (user) {
-    // ログイン中の処理
     currentUser = user;
     const displayName = user.displayName || "Xユーザー";
     
+    // ★変更：Xのアイコン画像を取得して表示
+    const photoURL = user.photoURL;
+    const iconHtml = photoURL ? `<img src="${photoURL}" class="user-icon" alt="icon">` : `✅`;
+    
     loginMsg.style.display = "none";
-    statusSpan.textContent = `✅ ${displayName} としてログイン中`;
+    statusSpan.innerHTML = `${iconHtml} ${displayName} としてログイン中`;
     statusSpan.style.display = "inline";
     loginBtn.style.display = "none";
     logoutBtn.style.display = "inline-block";
 
     await loadMyPokemons();
   } else {
-    // 未ログイン時の処理
     currentUser = null;
-    
     loginMsg.style.display = "inline";
     statusSpan.style.display = "none";
     loginBtn.style.display = "inline-block";
     logoutBtn.style.display = "none";
     
-    // 未ログイン時はリストを初期化
     myRegisteredPokemons = [];
     updateRegisteredList();
   }
@@ -101,11 +104,7 @@ async function loadMyPokemons() {
 }
 
 window.saveMyPokemons = async function() {
-  // ログインしていない場合はクラウド保存を行わず終了
-  if (!currentUser) {
-    console.log("未ログインのためクラウド保存をスキップしました。");
-    return;
-  }
+  if (!currentUser) return;
   try {
     const docRef = doc(db, "users", currentUser.uid);
     await setDoc(docRef, { pokemons: myRegisteredPokemons });
@@ -177,8 +176,12 @@ function calcActualSpeed(baseSpeed, points, isNatureUp, hasScarf) {
   return stat;
 }
 
+// --- 自分のポケモン登録・編集 ---
 let tempRegisterTarget = null;
+
 function selectForRegister(pokemon) {
+  editingIndex = -1; // 新規検索した場合は編集モードをリセット
+  document.getElementById('reg-save-btn').textContent = "登録する";
   tempRegisterTarget = pokemon;
   document.getElementById('reg-selected-name').textContent = pokemon.name;
   document.getElementById('reg-stats').style.display = 'block';
@@ -192,21 +195,72 @@ window.registerMyPokemon = async function() {
   const actualSpeed = calcActualSpeed(tempRegisterTarget.baseSpeed, points, isNatureUp, hasScarf);
 
   const newData = { ...tempRegisterTarget, points, isNatureUp, hasScarf, actualSpeed };
-  myRegisteredPokemons.push(newData);
-  updateRegisteredList();
   
+  // ★追加：編集か新規登録かで処理を分ける
+  if (editingIndex >= 0) {
+    myRegisteredPokemons[editingIndex] = newData; // 上書き
+    editingIndex = -1; // 編集モード終了
+    document.getElementById('reg-save-btn').textContent = "登録する";
+  } else {
+    myRegisteredPokemons.push(newData); // 新規追加
+  }
+  
+  updateRegisteredList();
   await window.saveMyPokemons();
   
   document.getElementById('reg-stats').style.display = 'none';
   tempRegisterTarget = null;
 }
 
+// ★追加：編集ボタンを押した時の処理
+window.editPokemon = function(index) {
+  editingIndex = index;
+  const p = myRegisteredPokemons[index];
+  tempRegisterTarget = p; // 編集対象をセット
+  
+  // 入力欄に現在のデータを反映
+  document.getElementById('reg-selected-name').textContent = p.name + " (編集中)";
+  document.getElementById('reg-points').value = p.points;
+  document.getElementById('reg-nature').checked = p.isNatureUp;
+  document.getElementById('reg-scarf').checked = p.hasScarf;
+  document.getElementById('reg-save-btn').textContent = "更新する";
+  document.getElementById('reg-stats').style.display = 'block';
+  
+  // 登録タブに自動で移動
+  window.switchTab('register');
+}
+
+// ★追加：削除ボタンを押した時の処理
+window.deletePokemon = async function(index) {
+  const confirmDelete = confirm(`${myRegisteredPokemons[index].name} を削除してもよろしいですか？`);
+  if (confirmDelete) {
+    myRegisteredPokemons.splice(index, 1); // 配列から1つ削除
+    updateRegisteredList();
+    await window.saveMyPokemons();
+    
+    // もし現在素早さチェックで選んでいるポケモンを削除した場合は表示をリセット
+    if (currentCheckMine && !myRegisteredPokemons.includes(currentCheckMine)) {
+      currentCheckMine = null;
+      document.getElementById('my-stats-check').style.display = 'none';
+      document.getElementById('battle-results').innerHTML = '';
+    }
+  }
+}
+
 function updateRegisteredList() {
   const ul = document.getElementById('registered-list');
   ul.innerHTML = '';
-  myRegisteredPokemons.forEach(p => {
+  myRegisteredPokemons.forEach((p, index) => {
     const li = document.createElement('li');
-    li.textContent = `${p.name} (実数値: ${p.actualSpeed}) ${p.hasScarf ? '🧣スカーフ' : ''}`;
+    li.className = 'registered-item';
+    // ★変更：削除・編集ボタンを追加
+    li.innerHTML = `
+      <span>${p.name} (実数値: ${p.actualSpeed}) ${p.hasScarf ? '🧣スカーフ' : ''}</span>
+      <div class="list-actions">
+        <button class="edit-btn" onclick="editPokemon(${index})">編集</button>
+        <button class="delete-btn" onclick="deletePokemon(${index})">削除</button>
+      </div>
+    `;
     ul.appendChild(li);
   });
 
