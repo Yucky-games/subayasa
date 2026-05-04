@@ -21,9 +21,11 @@ let pokemonData = [];
 let myRegisteredPokemons = [];
 let currentCheckMine = null;
 let currentCheckOpp = null;
-let baseMine = null;
-let baseOpponent = null;
+let currentMineRegisteredConfig = null;
+let currentMineRegisteredIndex = -1;
 let editingIndex = -1;
+
+const MEGA_POKEMON_ID_START = 20000;
 
 onAuthStateChanged(auth, async (user) => {
   const statusSpan = document.getElementById('user-status');
@@ -49,6 +51,8 @@ onAuthStateChanged(auth, async (user) => {
     loginBtn.style.display = "inline-block";
     logoutBtn.style.display = "none";
     myRegisteredPokemons = [];
+    currentMineRegisteredConfig = null;
+    currentMineRegisteredIndex = -1;
     updateRegisteredList();
   }
 });
@@ -168,6 +172,41 @@ function calcActualSpeed(baseSpeed, points, isNatureUp, hasScarf) {
   return stat;
 }
 
+function isMegaPokemon(pokemon) {
+  return pokemon && Number(pokemon.id) >= MEGA_POKEMON_ID_START;
+}
+
+function getBaseNameFromMega(megaPokemon) {
+  return megaPokemon.name
+    .replace(/^メガ(進化した)?/, '')
+    .replace(/[XY]$/, '')
+    .replace(/\(.+\)$/, '');
+}
+
+function getBasePokemonFromMega(megaPokemon) {
+  if (!isMegaPokemon(megaPokemon)) return null;
+  const baseName = getBaseNameFromMega(megaPokemon);
+  return pokemonData.find(p => !isMegaPokemon(p) && p.name === baseName) || null;
+}
+
+function getMegaGroupBasePokemon(pokemon) {
+  return isMegaPokemon(pokemon) ? getBasePokemonFromMega(pokemon) : pokemon;
+}
+
+function getMegasForBasePokemon(basePokemon) {
+  if (!basePokemon) return [];
+  return pokemonData.filter(p => {
+    if (!isMegaPokemon(p)) return false;
+    const megaBasePokemon = getBasePokemonFromMega(p);
+    return megaBasePokemon && megaBasePokemon.id === basePokemon.id;
+  });
+}
+
+function getMegaButtonLabel(megaPokemon, basePokemon) {
+  const label = megaPokemon.name.replace(basePokemon.name, '');
+  return label === megaPokemon.name ? megaPokemon.name : label;
+}
+
 let tempRegisterTarget = null;
 function selectForRegister(pokemon) {
   editingIndex = -1;
@@ -186,7 +225,17 @@ window.registerMyPokemon = async function() {
   const newData = { ...tempRegisterTarget, points, isNatureUp, hasScarf, actualSpeed, memo: "" };
   if (editingIndex >= 0) {
     newData.memo = myRegisteredPokemons[editingIndex].memo || "";
+    const updatedIndex = editingIndex;
     myRegisteredPokemons[editingIndex] = newData;
+    if (currentMineRegisteredIndex === updatedIndex) {
+      currentMineRegisteredConfig = {
+        points: newData.points,
+        isNatureUp: newData.isNatureUp,
+        hasScarf: newData.hasScarf,
+        memo: newData.memo || ''
+      };
+      window.updateBattle();
+    }
     editingIndex = -1;
     document.getElementById('reg-save-btn').textContent = "登録する";
   } else {
@@ -214,14 +263,20 @@ window.editPokemon = function(index) {
 window.deletePokemon = async function(index) {
   const confirmDelete = confirm(`${myRegisteredPokemons[index].name} を削除してもよろしいですか？`);
   if (confirmDelete) {
+    const isDeletingCurrentMine = currentMineRegisteredIndex === index;
     myRegisteredPokemons.splice(index, 1);
+    if (isDeletingCurrentMine) {
+      currentCheckMine = null;
+      currentMineRegisteredConfig = null;
+      currentMineRegisteredIndex = -1;
+      document.getElementById('my-stats-check').style.display = 'none';
+      document.getElementById('my-mega-buttons-area').innerHTML = '';
+      document.getElementById('battle-results').innerHTML = '';
+    } else if (currentMineRegisteredIndex > index) {
+      currentMineRegisteredIndex -= 1;
+    }
     updateRegisteredList();
     await window.saveMyPokemons();
-    if (currentCheckMine && !myRegisteredPokemons.includes(currentCheckMine)) {
-      currentCheckMine = null;
-      document.getElementById('my-stats-check').style.display = 'none';
-      document.getElementById('battle-results').innerHTML = '';
-    }
   }
 }
 
@@ -244,6 +299,10 @@ function updateRegisteredList() {
     const memoInput = li.querySelector('.memo-input');
     memoInput.addEventListener('change', async (e) => {
       myRegisteredPokemons[index].memo = e.target.value;
+      if (currentMineRegisteredIndex === index && currentMineRegisteredConfig) {
+        currentMineRegisteredConfig.memo = e.target.value;
+        window.updateBattle();
+      }
       await window.saveMyPokemons();
       updateSelectDropdown();
     });
@@ -264,17 +323,37 @@ function updateSelectDropdown() {
   });
   select.onchange = (e) => {
     if (e.target.value !== "") {
-      const p = myRegisteredPokemons[e.target.value];
-      currentCheckMine = p;
-      document.getElementById('my-stats-check').style.display = 'none';
-      window.updateBattle();
+      const selectedIndex = Number(e.target.value);
+      const p = myRegisteredPokemons[selectedIndex];
+      currentMineRegisteredConfig = {
+        points: p.points,
+        isNatureUp: p.isNatureUp,
+        hasScarf: p.hasScarf,
+        memo: p.memo || ''
+      };
+      currentMineRegisteredIndex = selectedIndex;
+      setMineCheck(p);
+      setMineInputVisibility(false);
+      generateMegaButtons(p, true);
     }
   };
 }
 
 function selectForMyCheck(pokemon) {
+  currentMineRegisteredConfig = null;
+  currentMineRegisteredIndex = -1;
+  setMineInputVisibility(true);
   setMineCheck(pokemon);
   generateMegaButtons(pokemon, true);
+}
+
+function setMineInputVisibility(isVisible) {
+  const myStatsArea = document.getElementById('my-stats-check');
+  if (!myStatsArea) return;
+  const display = isVisible ? '' : 'none';
+  myStatsArea.querySelectorAll('.inputs-row, .checkbox-row').forEach(row => {
+    row.style.display = display;
+  });
 }
 
 function setMineCheck(pokemon) {
@@ -303,23 +382,13 @@ function generateMegaButtons(selectedPokemon, isMine) {
   container.innerHTML = '';
 
   // 元のポケモン（通常フォルム）を特定する
-  let basePokemon;
-  if (selectedPokemon.name.startsWith('メガ')) {
-    // 選択されたのがメガの場合：名マから「メガ」を除いて通常フォルムを探す
-    const baseName = selectedPokemon.name.replace(/^メガ(進化した)?/, '');
-    // リザードンのようにメガX/Yがある場合は、通常名に戻すための調整
-    const cleanedBaseName = baseName.replace(/[XY]$/, ''); 
-    basePokemon = pokemonData.find(p => p.name === cleanedBaseName);
-  } else {
-    // 選択されたのが通常の場合
-    basePokemon = selectedPokemon;
-  }
+  const basePokemon = getMegaGroupBasePokemon(selectedPokemon);
 
   // もし通常フォルムのデータが見つからなければボタンは出さない
   if (!basePokemon) return;
 
   // 通常フォルムから派生するメガ進化たちをすべて探す
-  const megas = pokemonData.filter(p => p.name.includes('メガ' + basePokemon.name));
+  const megas = getMegasForBasePokemon(basePokemon);
 
   // メガ進化が存在する場合のみ、通常ボタンとメガボタンを並べる
   if (megas.length > 0) {
@@ -337,7 +406,7 @@ function generateMegaButtons(selectedPokemon, isMine) {
     megas.forEach(mega => {
       const megaBtn = document.createElement('button');
       // ボタン表示名は「メガリザードンX」ではなく「メガX」のように短縮すると綺麗
-      megaBtn.textContent = mega.name.replace(basePokemon.name, ''); 
+      megaBtn.textContent = getMegaButtonLabel(mega, basePokemon); 
       if (selectedPokemon.name === mega.name) megaBtn.classList.add('active');
       megaBtn.onclick = () => {
         if (isMine) setMineCheck(mega); else setOpponent(mega);
@@ -352,16 +421,21 @@ window.updateBattle = function() {
   if (!currentCheckMine || !currentCheckOpp) return;
   let mySpeed;
   let myLabel = currentCheckMine.name;
-  if (document.getElementById('my-stats-check').style.display === 'block') {
+  if (currentMineRegisteredConfig) {
+    mySpeed = calcActualSpeed(
+      currentCheckMine.baseSpeed,
+      currentMineRegisteredConfig.points,
+      currentMineRegisteredConfig.isNatureUp,
+      currentMineRegisteredConfig.hasScarf
+    );
+    if(currentMineRegisteredConfig.memo) myLabel += ` [${currentMineRegisteredConfig.memo}]`;
+    if(currentMineRegisteredConfig.hasScarf) myLabel += " (スカーフ)";
+  } else {
     const pts = document.getElementById('my-points-check').value;
     const nat = document.getElementById('my-nature-check').checked;
     const scf = document.getElementById('my-scarf-check').checked;
     mySpeed = calcActualSpeed(currentCheckMine.baseSpeed, pts, nat, scf);
     if(scf) myLabel += " (スカーフ)";
-  } else {
-    mySpeed = currentCheckMine.actualSpeed;
-    if(currentCheckMine.memo) myLabel += ` [${currentCheckMine.memo}]`;
-    if(currentCheckMine.hasScarf) myLabel += " (スカーフ)";
   }
   const oppBase = currentCheckOpp.baseSpeed;
   const oppPatterns = [
