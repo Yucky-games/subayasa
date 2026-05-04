@@ -23,8 +23,6 @@ let currentCheckMine = null;
 let currentCheckOpp = null;
 let baseMine = null;
 let baseOpponent = null;
-
-// ★追加：現在編集中のポケモンのインデックス（-1なら新規登録）
 let editingIndex = -1;
 
 onAuthStateChanged(auth, async (user) => {
@@ -37,7 +35,6 @@ onAuthStateChanged(auth, async (user) => {
     currentUser = user;
     const displayName = user.displayName || "Xユーザー";
     
-    // ★変更：Xのアイコン画像を取得して表示
     const photoURL = user.photoURL;
     const iconHtml = photoURL ? `<img src="${photoURL}" class="user-icon" alt="icon">` : `✅`;
     
@@ -176,11 +173,10 @@ function calcActualSpeed(baseSpeed, points, isNatureUp, hasScarf) {
   return stat;
 }
 
-// --- 自分のポケモン登録・編集 ---
 let tempRegisterTarget = null;
 
 function selectForRegister(pokemon) {
-  editingIndex = -1; // 新規検索した場合は編集モードをリセット
+  editingIndex = -1;
   document.getElementById('reg-save-btn').textContent = "登録する";
   tempRegisterTarget = pokemon;
   document.getElementById('reg-selected-name').textContent = pokemon.name;
@@ -194,15 +190,16 @@ window.registerMyPokemon = async function() {
   const hasScarf = document.getElementById('reg-scarf').checked;
   const actualSpeed = calcActualSpeed(tempRegisterTarget.baseSpeed, points, isNatureUp, hasScarf);
 
-  const newData = { ...tempRegisterTarget, points, isNatureUp, hasScarf, actualSpeed };
+  const newData = { ...tempRegisterTarget, points, isNatureUp, hasScarf, actualSpeed, memo: "" };
   
-  // ★追加：編集か新規登録かで処理を分ける
   if (editingIndex >= 0) {
-    myRegisteredPokemons[editingIndex] = newData; // 上書き
-    editingIndex = -1; // 編集モード終了
+    // 編集時は既存のメモを引き継ぐ
+    newData.memo = myRegisteredPokemons[editingIndex].memo || "";
+    myRegisteredPokemons[editingIndex] = newData;
+    editingIndex = -1;
     document.getElementById('reg-save-btn').textContent = "登録する";
   } else {
-    myRegisteredPokemons.push(newData); // 新規追加
+    myRegisteredPokemons.push(newData);
   }
   
   updateRegisteredList();
@@ -212,13 +209,11 @@ window.registerMyPokemon = async function() {
   tempRegisterTarget = null;
 }
 
-// ★追加：編集ボタンを押した時の処理
 window.editPokemon = function(index) {
   editingIndex = index;
   const p = myRegisteredPokemons[index];
-  tempRegisterTarget = p; // 編集対象をセット
+  tempRegisterTarget = p;
   
-  // 入力欄に現在のデータを反映
   document.getElementById('reg-selected-name').textContent = p.name + " (編集中)";
   document.getElementById('reg-points').value = p.points;
   document.getElementById('reg-nature').checked = p.isNatureUp;
@@ -226,19 +221,16 @@ window.editPokemon = function(index) {
   document.getElementById('reg-save-btn').textContent = "更新する";
   document.getElementById('reg-stats').style.display = 'block';
   
-  // 登録タブに自動で移動
   window.switchTab('register');
 }
 
-// ★追加：削除ボタンを押した時の処理
 window.deletePokemon = async function(index) {
   const confirmDelete = confirm(`${myRegisteredPokemons[index].name} を削除してもよろしいですか？`);
   if (confirmDelete) {
-    myRegisteredPokemons.splice(index, 1); // 配列から1つ削除
+    myRegisteredPokemons.splice(index, 1);
     updateRegisteredList();
     await window.saveMyPokemons();
     
-    // もし現在素早さチェックで選んでいるポケモンを削除した場合は表示をリセット
     if (currentCheckMine && !myRegisteredPokemons.includes(currentCheckMine)) {
       currentCheckMine = null;
       document.getElementById('my-stats-check').style.display = 'none';
@@ -253,23 +245,43 @@ function updateRegisteredList() {
   myRegisteredPokemons.forEach((p, index) => {
     const li = document.createElement('li');
     li.className = 'registered-item';
-    // ★変更：削除・編集ボタンを追加
+    
+    // ★変更：テキストボックス（メモ欄）を生成して配置
     li.innerHTML = `
-      <span>${p.name} (実数値: ${p.actualSpeed}) ${p.hasScarf ? '🧣スカーフ' : ''}</span>
+      <div class="list-info">
+        <span style="white-space: nowrap;">${p.name} (実数値: ${p.actualSpeed}) ${p.hasScarf ? '🧣' : ''}</span>
+        <input type="text" class="memo-input" placeholder="メモ追加" value="${p.memo || ''}">
+      </div>
       <div class="list-actions">
         <button class="edit-btn" onclick="editPokemon(${index})">編集</button>
         <button class="delete-btn" onclick="deletePokemon(${index})">削除</button>
       </div>
     `;
+    
+    // ★追加：メモ欄への入力・変更があった時に自動保存する処理
+    const memoInput = li.querySelector('.memo-input');
+    memoInput.addEventListener('change', async (e) => {
+      myRegisteredPokemons[index].memo = e.target.value;
+      await window.saveMyPokemons();
+      updateSelectDropdown(); // プルダウンの表示だけ更新
+    });
+    
     ul.appendChild(li);
   });
 
+  updateSelectDropdown();
+}
+
+// プルダウンだけを更新する独立した関数（入力中にフォーカスが外れないようにするため）
+function updateSelectDropdown() {
   const select = document.getElementById('my-registered-select');
   select.innerHTML = '<option value="">登録済みから選ぶ...</option>';
   myRegisteredPokemons.forEach((p, index) => {
     const opt = document.createElement('option');
     opt.value = index;
-    opt.textContent = `${p.name} (実数値: ${p.actualSpeed})`;
+    // メモがあればプルダウンにも表示
+    const memoText = p.memo ? ` [${p.memo}]` : '';
+    opt.textContent = `${p.name} (実数値: ${p.actualSpeed})${memoText}`;
     select.appendChild(opt);
   });
   
@@ -359,6 +371,8 @@ window.updateBattle = function() {
     if(scf) myLabel += " (スカーフ)";
   } else {
     mySpeed = currentCheckMine.actualSpeed;
+    // ★変更：登録済みから選んだ場合はメモも表示に含める
+    if(currentCheckMine.memo) myLabel += ` [${currentCheckMine.memo}]`;
     if(currentCheckMine.hasScarf) myLabel += " (スカーフ)";
   }
 
