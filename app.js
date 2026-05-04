@@ -3,6 +3,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/fireba
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
+// 先ほどいただいたFirebaseの接続キー
 const firebaseConfig = {
   apiKey: "AIzaSyAprIcaJ4VhhXjE6XKJ8DjxOVkpSs-vH98",
   authDomain: "pokemon-subayasa-checker.firebaseapp.com",
@@ -29,12 +30,10 @@ let baseOpponent = null;
 // --- 3. アプリ起動時の処理（ログインとデータ読み込み） ---
 onAuthStateChanged(auth, async (user) => {
   if (user) {
-    // すでにログイン（匿名）している場合
     currentUser = user;
     console.log("ログイン成功 UID:", user.uid);
-    await loadMyPokemons(); // クラウドから自分のポケモンを読み込む
+    await loadMyPokemons(); // クラウドからデータを読み込む
   } else {
-    // ログインしていない場合は、自動で匿名ログインを実行
     signInAnonymously(auth).catch(error => console.error("ログインエラー:", error));
   }
 });
@@ -50,7 +49,6 @@ window.onload = async () => {
 };
 
 // --- 4. Firestore (データベース) との通信処理 ---
-// クラウドから読み込み
 async function loadMyPokemons() {
   if (!currentUser) return;
   const docRef = doc(db, "users", currentUser.uid);
@@ -61,7 +59,6 @@ async function loadMyPokemons() {
   }
 }
 
-// クラウドへ保存
 async function saveMyPokemons() {
   if (!currentUser) return;
   const docRef = doc(db, "users", currentUser.uid);
@@ -70,10 +67,19 @@ async function saveMyPokemons() {
 
 // --- 5. UIロジック（HTMLから呼び出せるように window に登録） ---
 window.switchTab = function(tabId) {
+  // すべてのタブの中身とボタンの青い線をリセット
   document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
   document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-  event.target.classList.add('active');
+  
+  // 選ばれたタブの中身を表示
   document.getElementById(`${tabId}-tab`).classList.add('active');
+
+  // 選ばれたボタンに青い線を付ける
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    if (btn.getAttribute('onclick').includes(tabId)) {
+      btn.classList.add('active');
+    }
+  });
 }
 
 function hiraToKata(str) {
@@ -173,7 +179,8 @@ function updateRegisteredList() {
   
   select.onchange = (e) => {
     if (e.target.value !== "") {
-      currentCheckMine = myRegisteredPokemons[e.target.value];
+      const p = myRegisteredPokemons[e.target.value];
+      currentCheckMine = p;
       document.getElementById('my-stats-check').style.display = 'none';
       window.updateBattle();
     }
