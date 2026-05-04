@@ -7,8 +7,9 @@
   <link rel="stylesheet" href="style.css">
   <style>
     .header-area { display: flex; justify-content: space-between; align-items: center; }
-    .auth-area { font-size: 0.9em; }
+    .auth-area { display: flex; align-items: center; font-size: 0.9em; }
     .auth-area button { margin-left: 10px; padding: 5px 10px; cursor: pointer; border-radius: 4px; border: none; font-weight: bold; }
+    .login-msg { color: #dc3545; font-weight: bold; margin-right: 10px; }
     #login-x-btn { background-color: #000; color: #fff; }
     #logout-btn { background-color: #ccc; color: #333; }
   </style>
@@ -18,7 +19,10 @@
     <div class="header-area">
       <h1>素早さチェッカー</h1>
       <div class="auth-area">
-        <span id="user-status">読み込み中...</span>
+        <!-- 未ログイン時のみ表示されるメッセージ -->
+        <span id="login-message" class="login-msg" style="display:none;">自分のポケモンを保存する場合にはログインが必要です。</span>
+        <!-- ログイン時のみ表示されるステータス -->
+        <span id="user-status" style="display:none;"></span>
         <button id="login-x-btn" onclick="loginWithX()" style="display:none;">Xでログイン</button>
         <button id="logout-btn" onclick="logout()" style="display:none;">ログアウト</button>
       </div>
