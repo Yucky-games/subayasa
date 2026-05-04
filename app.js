@@ -1,0 +1,246 @@
+let pokemonData = [];
+let myRegisteredPokemons = []; // フェーズ2でFirebaseに置き換える配列
+
+// 現在選択中のポケモンデータ
+let currentCheckMine = null;
+let currentCheckOpp = null;
+let baseOpponent = null; // メガシンカ解除用
+
+// 1. 初期化とデータ読み込み
+window.onload = async () => {
+  try {
+    const res = await fetch('pokemon_data.json');
+    pokemonData = await res.json();
+    setupSearchListeners();
+  } catch (error) {
+    console.error('データの読み込みに失敗しました', error);
+  }
+};
+
+// タブ切り替え処理
+function switchTab(tabId) {
+  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById(`${tabId}-tab`).classList.add('active');
+}
+
+// 2. ひらがな→カタカナ変換（あいまい検索用）
+function hiraToKata(str) {
+  return str.replace(/[\u3041-\u3096]/g, match => String.fromCharCode(match.charCodeAt(0) + 0x60));
+}
+
+// 3. 検索イベントの設定
+function setupSearchListeners() {
+  setupSearch('reg-search', 'reg-search-results', selectForRegister);
+  setupSearch('my-search-check', 'my-search-results-check', selectForMyCheck);
+  setupSearch('opp-search', 'opp-search-results', selectForOppCheck);
+
+  // 計算のリアルタイム反映用イベント
+  ['my-points-check', 'my-nature-check', 'my-scarf-check'].forEach(id => {
+    document.getElementById(id).addEventListener('input', updateBattle);
+  });
+}
+
+function setupSearch(inputId, resultsId, onSelectCallback) {
+  const input = document.getElementById(inputId);
+  const resultsDiv = document.getElementById(resultsId);
+
+  input.addEventListener('input', (e) => {
+    const query = hiraToKata(e.target.value.trim());
+    resultsDiv.innerHTML = '';
+    
+    if (query.length === 0) {
+      resultsDiv.style.display = 'none';
+      return;
+    }
+
+    const filtered = pokemonData.filter(p => p.name.includes(query)).slice(0, 10);
+    if (filtered.length > 0) {
+      resultsDiv.style.display = 'block';
+      filtered.forEach(p => {
+        const div = document.createElement('div');
+        div.textContent = p.name;
+        div.onclick = () => {
+          onSelectCallback(p);
+          input.value = '';
+          resultsDiv.style.display = 'none';
+        };
+        resultsDiv.appendChild(div);
+      });
+    } else {
+      resultsDiv.style.display = 'none';
+    }
+  });
+}
+
+// 4. 計算ロジック
+function calcActualSpeed(baseSpeed, points, isNatureUp, hasScarf) {
+  let stat = baseSpeed + 20 + Number(points);
+  if (isNatureUp) stat = Math.floor(stat * 1.1);
+  if (hasScarf) stat = Math.floor(stat * 1.5);
+  return stat;
+}
+
+// 5. 自分のポケモン登録処理
+let tempRegisterTarget = null;
+function selectForRegister(pokemon) {
+  tempRegisterTarget = pokemon;
+  document.getElementById('reg-selected-name').textContent = pokemon.name;
+  document.getElementById('reg-stats').style.display = 'block';
+}
+
+function registerMyPokemon() {
+  if (!tempRegisterTarget) return;
+  const points = document.getElementById('reg-points').value;
+  const isNatureUp = document.getElementById('reg-nature').checked;
+  const hasScarf = document.getElementById('reg-scarf').checked;
+  const actualSpeed = calcActualSpeed(tempRegisterTarget.baseSpeed, points, isNatureUp, hasScarf);
+
+  const newData = {
+    ...tempRegisterTarget,
+    points, isNatureUp, hasScarf, actualSpeed
+  };
+  
+  myRegisteredPokemons.push(newData);
+  updateRegisteredList();
+  
+  // 登録完了後、入力をリセット
+  document.getElementById('reg-stats').style.display = 'none';
+  tempRegisterTarget = null;
+}
+
+function updateRegisteredList() {
+  // 登録リストのUI更新
+  const ul = document.getElementById('registered-list');
+  ul.innerHTML = '';
+  myRegisteredPokemons.forEach(p => {
+    const li = document.createElement('li');
+    li.textContent = `${p.name} (実数値: ${p.actualSpeed}) ${p.hasScarf ? '🧣スカーフ' : ''}`;
+    ul.appendChild(li);
+  });
+
+  // 素早さチェックタブのプルダウンも更新
+  const select = document.getElementById('my-registered-select');
+  select.innerHTML = '<option value="">登録済みから選ぶ...</option>';
+  myRegisteredPokemons.forEach((p, index) => {
+    const opt = document.createElement('option');
+    opt.value = index;
+    opt.textContent = `${p.name} (実数値: ${p.actualSpeed})`;
+    select.appendChild(opt);
+  });
+  
+  // プルダウン変更時のイベント
+  select.onchange = (e) => {
+    if (e.target.value !== "") {
+      currentCheckMine = myRegisteredPokemons[e.target.value];
+      document.getElementById('my-stats-check').style.display = 'none'; // 自由入力欄を隠す
+      updateBattle();
+    }
+  };
+}
+
+// 6. 素早さチェック用選択処理
+function selectForMyCheck(pokemon) {
+  currentCheckMine = pokemon;
+  document.getElementById('my-registered-select').value = ""; // プルダウンをリセット
+  document.getElementById('my-selected-name-check').textContent = pokemon.name;
+  document.getElementById('my-stats-check').style.display = 'block';
+  updateBattle();
+}
+
+function selectForOppCheck(pokemon) {
+  baseOpponent = pokemon;
+  setOpponent(pokemon);
+  generateMegaButtons(pokemon.name);
+}
+
+function setOpponent(pokemon) {
+  currentCheckOpp = pokemon;
+  document.getElementById('opp-selected-area').style.display = 'block';
+  document.getElementById('opp-selected-name').textContent = pokemon.name;
+  updateBattle();
+}
+
+// 7. メガシンカボタンの生成
+function generateMegaButtons(baseName) {
+  const container = document.getElementById('mega-buttons-area');
+  container.innerHTML = '';
+  
+  // 「メガ + ベース名」を含むポケモンを検索
+  const megas = pokemonData.filter(p => p.name.includes('メガ' + baseName));
+  
+  if (megas.length > 0) {
+    const baseBtn = document.createElement('button');
+    baseBtn.textContent = '通常フォルム';
+    baseBtn.classList.add('active');
+    baseBtn.onclick = () => {
+      setOpponent(baseOpponent);
+      Array.from(container.children).forEach(b => b.classList.remove('active'));
+      baseBtn.classList.add('active');
+    };
+    container.appendChild(baseBtn);
+
+    megas.forEach(mega => {
+      const megaBtn = document.createElement('button');
+      megaBtn.textContent = mega.name;
+      megaBtn.onclick = () => {
+        setOpponent(mega);
+        Array.from(container.children).forEach(b => b.classList.remove('active'));
+        megaBtn.classList.add('active');
+      };
+      container.appendChild(megaBtn);
+    });
+  }
+}
+
+// 8. 最終的な素早さ計算と積み上げUIの描画
+function updateBattle() {
+  if (!currentCheckMine || !currentCheckOpp) return; // 両方揃うまで計算しない
+
+  let mySpeed;
+  let myLabel = currentCheckMine.name;
+  
+  // 自由入力か登録済みかで計算を分岐
+  if (document.getElementById('my-stats-check').style.display === 'block') {
+    const pts = document.getElementById('my-points-check').value;
+    const nat = document.getElementById('my-nature-check').checked;
+    const scf = document.getElementById('my-scarf-check').checked;
+    mySpeed = calcActualSpeed(currentCheckMine.baseSpeed, pts, nat, scf);
+    if(scf) myLabel += " (スカーフ)";
+  } else {
+    mySpeed = currentCheckMine.actualSpeed;
+    if(currentCheckMine.hasScarf) myLabel += " (スカーフ)";
+  }
+
+  // 相手の6パターンを計算
+  const oppBase = currentCheckOpp.baseSpeed;
+  const oppPatterns = [
+    { label: `${currentCheckOpp.name} (最速スカーフ)`, speed: calcActualSpeed(oppBase, 32, true, true), isMine: false },
+    { label: `${currentCheckOpp.name} (最速)`, speed: calcActualSpeed(oppBase, 32, true, false), isMine: false },
+    { label: `${currentCheckOpp.name} (準速スカーフ)`, speed: calcActualSpeed(oppBase, 32, false, true), isMine: false },
+    { label: `${currentCheckOpp.name} (準速)`, speed: calcActualSpeed(oppBase, 32, false, false), isMine: false },
+    { label: `${currentCheckOpp.name} (無振りスカーフ)`, speed: calcActualSpeed(oppBase, 0, false, true), isMine: false },
+    { label: `${currentCheckOpp.name} (無振り)`, speed: calcActualSpeed(oppBase, 0, false, false), isMine: false },
+  ];
+
+  // 自分のデータを配列に追加
+  const allResults = [...oppPatterns, { label: myLabel, speed: mySpeed, isMine: true }];
+
+  // 素早さの降順（高い順）にソート
+  allResults.sort((a, b) => b.speed - a.speed);
+
+  // UIの描画
+  const resultDiv = document.getElementById('battle-results');
+  resultDiv.innerHTML = '<h3>素早さ関係（上が先制）</h3>';
+  
+  allResults.forEach(res => {
+    const row = document.createElement('div');
+    row.className = `result-row ${res.isMine ? 'result-mine' : 'result-opp'}`;
+    row.innerHTML = `
+      <span>${res.label}</span>
+      <span class="speed-val">${res.speed}</span>
+    `;
+    resultDiv.appendChild(row);
+  });
+}
